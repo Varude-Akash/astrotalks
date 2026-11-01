@@ -12,7 +12,7 @@ import kotlinx.coroutines.CancellationException
  * Native Google account picker. Replace this value with the Web client ID
  * from Firebase Console before shipping the app.
  */
-private const val GOOGLE_WEB_CLIENT_ID = "REPLACE_WITH_FIREBASE_WEB_CLIENT_ID"
+private const val GOOGLE_WEB_CLIENT_ID = "126316545839-4qlmafojquvfcbfbbk0p6k7u6svat9nr.apps.googleusercontent.com"
 
 class GoogleAuth(private val context: Context) {
     private val credentialManager = CredentialManager.create(context)
