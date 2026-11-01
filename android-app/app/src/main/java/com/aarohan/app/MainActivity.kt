@@ -26,19 +26,19 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val Ink = Color(0xFF202033)
-private val Purple = Color(0xFF5F56A7)
-private val Cream = Color(0xFFF8F7F4)
-private val Gold = Color(0xFFC79A55)
+private val Ink = Color(0xFF2A2117)
+private val Purple = Color(0xFF956719) // warm ochre accent retained as the existing token name
+private val Cream = Color(0xFFFFFBF2)
+private val Gold = Color(0xFFD09A2D)
 
 data class Guide(val name: String, val symbol: String, val description: String, val rate: Int, val color: Color)
 private val guides = listOf(
-    Guide("Shri Krishna", "ॐ", "For clarity, courage & a lighter heart.", 15, Color(0xFF484A91)),
-    Guide("Lord Shiva", "◒", "For stillness, release & transformation.", 20, Color(0xFF75628B)),
-    Guide("Lord Ganesha", "◉", "For new beginnings & clearing the way.", 25, Color(0xFFB76D67)),
-    Guide("Shri Hanuman", "✦", "For strength, devotion & resilience.", 30, Color(0xFFB37645)),
-    Guide("Goddess Saraswati", "◌", "For learning, creativity & expression.", 35, Color(0xFF4E7776)),
-    Guide("Shri Mahalakshmi", "✧", "For gratitude, abundance & grace.", 40, Color(0xFFB88C49))
+    Guide("Shri Krishna", "ॐ", "For clarity, courage & a lighter heart.", 15, Color(0xFF73501A)),
+    Guide("Lord Shiva", "◒", "For stillness, release & transformation.", 20, Color(0xFF51483A)),
+    Guide("Lord Ganesha", "◉", "For new beginnings & clearing the way.", 25, Color(0xFF9A5B31)),
+    Guide("Shri Hanuman", "✦", "For strength, devotion & resilience.", 30, Color(0xFF7F3D25)),
+    Guide("Goddess Saraswati", "◌", "For learning, creativity & expression.", 35, Color(0xFF6B7053)),
+    Guide("Shri Mahalakshmi", "✧", "For gratitude, abundance & grace.", 40, Color(0xFFB47B22))
 )
 
 class MainActivity : ComponentActivity() {
@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
         Spacer(Modifier.height(25.dp)); Text("ASTROTALKS", color = Purple, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
         Text("Good morning,\nAnanya.", color = Ink, fontSize = 38.sp, fontWeight = FontWeight.SemiBold, lineHeight = 42.sp)
         Text("Take a breath. Ask what’s on your heart.", color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2A50)), shape = RoundedCornerShape(20.dp), modifier = Modifier.padding(vertical = 22.dp).fillMaxWidth()) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF332719)), shape = RoundedCornerShape(20.dp), modifier = Modifier.padding(vertical = 22.dp).fillMaxWidth()) {
             Column(Modifier.padding(22.dp)) { Text("A quiet place to return to", color = Color(0xFFD7C99F), fontSize = 12.sp); Text("Who would you like to sit with?", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp)); Text("AI-generated spiritual reflections inspired by tradition.", color = Color(0xFFD4D1DF), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text("Your spiritual circle", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold); Text("240 ✦", color = Gold, fontWeight = FontWeight.Bold) }
@@ -102,6 +102,6 @@ class MainActivity : ComponentActivity() {
 @Composable private fun BottomBar(selected: Int, onSelected: (Int) -> Unit) { NavigationBar(containerColor = Color.White) { listOf(Icons.Default.Home to "Home", Icons.Default.Forum to "Chats", Icons.Default.Stars to "Store", Icons.Default.Person to "Profile").forEachIndexed { i, item -> NavigationBarItem(selected = selected == i, onClick = { onSelected(i) }, icon = { Icon(item.first, null) }, label = { Text(item.second, fontSize = 10.sp) }) } } }
 
 @Composable private fun SimpleScreen(modifier: Modifier, title: String, body: String) { Column(modifier.padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Text(title, color = Ink, fontSize = 30.sp, fontWeight = FontWeight.SemiBold); Text(body, color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 14.dp)) } }
-@Composable private fun StoreScreen(modifier: Modifier) { Column(modifier.padding(24.dp)) { Text("Points store", color = Ink, fontSize = 30.sp, fontWeight = FontWeight.SemiBold); Text("Simple pricing. Transparent usage.", color = Color.Gray, modifier = Modifier.padding(top = 8.dp)); Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2A50)), modifier = Modifier.padding(vertical = 22.dp).fillMaxWidth()) { Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) { Text("Available balance", color = Color.White); Spacer(Modifier.weight(1f)); Text("240 ✦", color = Color(0xFFE4D4A9), fontSize = 22.sp, fontWeight = FontWeight.Bold) } }; listOf("300 points · ₹199", "800 points · ₹499", "1,800 points · ₹999").forEach { Card(Modifier.fillMaxWidth().padding(vertical = 6.dp), shape = RoundedCornerShape(14.dp)) { Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) { Text(it, color = Ink, fontWeight = FontWeight.SemiBold); Spacer(Modifier.weight(1f)); Button(onClick = {}, contentPadding = PaddingValues(horizontal = 14.dp)) { Text("Buy", fontSize = 11.sp) } } } } } }
+@Composable private fun StoreScreen(modifier: Modifier) { Column(modifier.padding(24.dp)) { Text("Points store", color = Ink, fontSize = 30.sp, fontWeight = FontWeight.SemiBold); Text("Simple pricing. Transparent usage.", color = Color.Gray, modifier = Modifier.padding(top = 8.dp)); Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF332719)), modifier = Modifier.padding(vertical = 22.dp).fillMaxWidth()) { Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) { Text("Available balance", color = Color.White); Spacer(Modifier.weight(1f)); Text("240 ✦", color = Color(0xFFFFD36A), fontSize = 22.sp, fontWeight = FontWeight.Bold) } }; listOf("300 points · ₹199", "800 points · ₹499", "1,800 points · ₹999").forEach { Card(Modifier.fillMaxWidth().padding(vertical = 6.dp), shape = RoundedCornerShape(14.dp)) { Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) { Text(it, color = Ink, fontWeight = FontWeight.SemiBold); Spacer(Modifier.weight(1f)); Button(onClick = {}, contentPadding = PaddingValues(horizontal = 14.dp)) { Text("Buy", fontSize = 11.sp) } } } } } }
 
 @Composable private fun ChatDialog(guide: Guide, onDismiss: () -> Unit) { var seconds by remember { mutableIntStateOf(60) }; LaunchedEffect(Unit) { while (seconds > 0) { delay(1000); seconds-- } }; AlertDialog(onDismissRequest = onDismiss, confirmButton = { Button(onClick = onDismiss) { Text("Close") } }, title = { Row(verticalAlignment = Alignment.CenterVertically) { Text(guide.symbol, color = Purple, fontSize = 24.sp); Spacer(Modifier.width(10.dp)); Column { Text(guide.name); Text("00:${seconds.toString().padStart(2, '0')} · ${guide.rate} pts/min", color = Purple, fontSize = 11.sp) } } }, text = { Column { Text("✦ AI-generated spiritual experience", color = Purple, fontSize = 11.sp); Text("\nWelcome, Ananya. Take a gentle breath. What feels most present in your heart today?", color = Ink, lineHeight = 22.sp); OutlinedTextField(value = "", onValueChange = {}, placeholder = { Text("Write what’s on your heart…") }, modifier = Modifier.fillMaxWidth().padding(top = 18.dp)) } }) }

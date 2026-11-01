@@ -1,9 +1,9 @@
 <resources>
     <style name="Theme.Aarohan" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#5F56A7</item>
-        <item name="android:navigationBarColor">#F8F7F4</item>
-        <item name="android:statusBarColor">#F8F7F4</item>
+        <item name="android:colorAccent">#956719</item>
+        <item name="android:navigationBarColor">#FFFBF2</item>
+        <item name="android:statusBarColor">#FFFBF2</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>
