@@ -96,4 +96,39 @@ class SupabaseAuth(private val context: Context) {
             Result.success(Unit)
         } catch (error: Exception) { Result.failure(error) }
     }
+
+    suspend fun purchaseFiveMinuteExtension(session: SupabaseSession, chatSessionId: String): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/rpc/purchase_chat_extension").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"; connection.doOutput = true
+            connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}"); connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write(JSONObject().put("p_session_id", chatSessionId).toString().toByteArray()) }
+            val body = (if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream).bufferedReader().use { it.readText() }
+            if (connection.responseCode !in 200..299) error("Not enough points for this extension")
+            Result.success(JSONObject(body).getInt("balance"))
+        } catch (error: Exception) { Result.failure(error) }
+    }
+
+    suspend fun archiveChatSession(session: SupabaseSession, chatSessionId: String, billableSeconds: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/rpc/archive_chat_session").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"; connection.doOutput = true
+            connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}"); connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write(JSONObject().apply { put("p_session_id", chatSessionId); put("p_billable_seconds", billableSeconds) }.toString().toByteArray()) }
+            if (connection.responseCode !in 200..299) error("Chat session could not be archived")
+            Result.success(Unit)
+        } catch (error: Exception) { Result.failure(error) }
+    }
+
+    suspend fun pointsBalance(session: SupabaseSession): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/rpc/points_balance").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"; connection.doOutput = true
+            connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}"); connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write("{}".toByteArray()) }
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            if (connection.responseCode !in 200..299) error("Balance could not be loaded")
+            Result.success(body.trim().toInt())
+        } catch (error: Exception) { Result.failure(error) }
+    }
 }
