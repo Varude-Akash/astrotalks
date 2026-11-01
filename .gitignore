@@ -6,4 +6,9 @@ captures/
 .idea/
 *.iml
 *.log
+android-app/keystore/
+android-app/keystore.properties
+*.jks
+*.keystore
+supabase/.temp/
 
