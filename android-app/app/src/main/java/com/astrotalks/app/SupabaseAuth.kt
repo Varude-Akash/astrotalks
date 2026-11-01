@@ -131,4 +131,18 @@ class SupabaseAuth(private val context: Context) {
             Result.success(body.trim().toInt())
         } catch (error: Exception) { Result.failure(error) }
     }
+
+    suspend fun generateReflection(session: SupabaseSession, guide: Guide, name: String, religion: String, messages: List<ChatBubble>): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val payloadMessages = org.json.JSONArray().apply { messages.forEach { put(JSONObject().apply { put("role", if (it.fromUser) "user" else "assistant"); put("content", it.text) }) } }
+            val payload = JSONObject().apply { put("guide", JSONObject().apply { put("name", guide.name) }); put("userName", name); put("religion", religion); put("messages", payloadMessages) }
+            val connection = URL("${BuildConfig.SUPABASE_URL}/functions/v1/spiritual-chat").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"; connection.doOutput = true
+            connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}"); connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write(payload.toString().toByteArray()) }
+            val body = (if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream).bufferedReader().use { it.readText() }
+            if (connection.responseCode !in 200..299) error("AI reflection unavailable")
+            Result.success(JSONObject(body).getString("reply"))
+        } catch (error: Exception) { Result.failure(error) }
+    }
 }
