@@ -9,8 +9,29 @@ import java.net.URL
 
 data class SupabaseSession(val accessToken: String, val userId: String, val email: String?)
 data class ChatSession(val id: String)
+data class ArchivedChat(val guideId: String, val createdAt: String)
 
 class SupabaseAuth(private val context: Context) {
+    suspend fun loadProfile(session: SupabaseSession): Result<UserProfile?> = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?id=eq.${session.userId}&select=full_name,religion,date_of_birth,birth_time,birthplace").openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"; connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            if (connection.responseCode !in 200..299) error("Profile could not be loaded")
+            val rows = org.json.JSONArray(body)
+            if (rows.length() == 0) Result.success(null) else { val row = rows.getJSONObject(0); Result.success(UserProfile(row.optString("full_name"), row.optString("religion", "Hinduism"), row.optString("date_of_birth"), row.optString("birth_time"), row.optString("birthplace"))) }
+        } catch (error: Exception) { Result.failure(error) }
+    }
+
+    suspend fun loadArchivedChats(session: SupabaseSession): Result<List<ArchivedChat>> = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/chat_sessions?select=guide_id,created_at&user_id=eq.${session.userId}&status=eq.archived&order=created_at.desc").openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"; connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            if (connection.responseCode !in 200..299) error("Conversation history could not be loaded")
+            val rows = org.json.JSONArray(body); Result.success((0 until rows.length()).map { index -> val row = rows.getJSONObject(index); ArchivedChat(row.getString("guide_id"), row.optString("created_at")) })
+        } catch (error: Exception) { Result.failure(error) }
+    }
     suspend fun signInWithGoogleIdToken(idToken: String): Result<SupabaseSession> = withContext(Dispatchers.IO) {
         try {
             val endpoint = "${BuildConfig.SUPABASE_URL}/auth/v1/token?grant_type=id_token"
@@ -63,15 +84,15 @@ class SupabaseAuth(private val context: Context) {
 
     suspend fun createChatSession(session: SupabaseSession, guideId: String): Result<ChatSession> = withContext(Dispatchers.IO) {
         try {
-            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/chat_sessions").openConnection() as HttpURLConnection
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/rpc/start_chat_session").openConnection() as HttpURLConnection
             connection.requestMethod = "POST"; connection.doOutput = true
             connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
-            connection.setRequestProperty("Content-Type", "application/json"); connection.setRequestProperty("Prefer", "return=representation")
-            connection.outputStream.use { it.write(JSONObject().apply { put("user_id", session.userId); put("guide_id", guideId); put("status", "active") }.toString().toByteArray()) }
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
-            if (connection.responseCode !in 200..299) error("Chat session could not be created")
-            Result.success(ChatSession(JSONObject(body.trim().removePrefix("[").removeSuffix("]")).getString("id")))
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write(JSONObject().put("p_guide_id", guideId).toString().toByteArray()) }
+            val body = (if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream).bufferedReader().use { it.readText() }
+            if (connection.responseCode !in 200..299) error("Not enough points for this guide")
+            Result.success(ChatSession(body.trim().replace("\"", "")))
         } catch (error: Exception) { Result.failure(error) }
     }
 
