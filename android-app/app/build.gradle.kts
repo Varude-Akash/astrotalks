@@ -15,8 +15,8 @@ val uploadKeystore = rootProject.file("keystore/astrotalks-upload.jks")
 val uploadStorePassword = System.getenv("ASTROTALKS_STORE_PASSWORD")
 val uploadKeyPassword = System.getenv("ASTROTALKS_KEY_PASSWORD")
 
-android { namespace = "com.astrotalks.app"; compileSdk = 35
-    defaultConfig { applicationId = "com.astrotalks.app"; minSdk = 26; targetSdk = 35; versionCode = 2; versionName = "1.0.1" }
+android { namespace = "com.astrotalks.app"; compileSdk = 36
+    defaultConfig { applicationId = "com.astrotalks.app"; minSdk = 26; targetSdk = 36; versionCode = 3; versionName = "1.0.2" }
     signingConfigs { create("release") { if (uploadKeystore.exists() && !uploadStorePassword.isNullOrBlank() && !uploadKeyPassword.isNullOrBlank()) { storeFile = uploadKeystore; storePassword = uploadStorePassword; keyAlias = "astrotalks-upload"; keyPassword = uploadKeyPassword } } }
     buildTypes { release { isMinifyEnabled = false; signingConfig = signingConfigs.getByName("release"); proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
