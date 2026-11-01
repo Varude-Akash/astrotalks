@@ -19,8 +19,8 @@ class SupabaseAuth(private val context: Context) {
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             if (connection.responseCode !in 200..299) error("Profile could not be loaded")
             val rows = org.json.JSONArray(body)
-            if (rows.length() == 0) Result.success(null) else { val row = rows.getJSONObject(0); Result.success(UserProfile(row.optString("full_name"), row.optString("religion", "Hinduism"), row.optString("date_of_birth"), row.optString("birth_time"), row.optString("birthplace"))) }
-        } catch (error: Exception) { Result.failure(error) }
+            if (rows.length() == 0) Result.success(cachedProfile(session.userId)) else { val row = rows.getJSONObject(0); Result.success(UserProfile(row.optString("full_name"), row.optString("religion", "Hinduism"), row.optString("date_of_birth"), row.optString("birth_time"), row.optString("birthplace"))) }
+        } catch (error: Exception) { Result.success(cachedProfile(session.userId)) }
     }
 
     suspend fun loadArchivedChats(session: SupabaseSession): Result<List<ArchivedChat>> = withContext(Dispatchers.IO) {
@@ -52,23 +52,31 @@ class SupabaseAuth(private val context: Context) {
 
     suspend fun saveProfile(session: SupabaseSession, profile: UserProfile): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val endpoint = "${BuildConfig.SUPABASE_URL}/rest/v1/profiles?id=eq.${session.userId}"
+            val endpoint = "${BuildConfig.SUPABASE_URL}/rest/v1/profiles"
             val connection = URL(endpoint).openConnection() as HttpURLConnection
-            connection.requestMethod = "PATCH"
+            connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
             connection.setRequestProperty("Content-Type", "application/json")
-            connection.setRequestProperty("Prefer", "return=minimal")
+            connection.setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
             val payload = JSONObject().apply {
+                put("id", session.userId)
                 put("full_name", profile.fullName); put("religion", profile.religion)
                 put("date_of_birth", profile.dateOfBirth); put("birth_time", profile.birthTime)
                 put("birthplace", profile.birthplace)
             }
             connection.outputStream.use { it.write(payload.toString().toByteArray()) }
             if (connection.responseCode !in 200..299) error("Profile save failed: ${connection.responseCode}")
+            context.getSharedPreferences("astrotalks_profile", Context.MODE_PRIVATE).edit().putString("${session.userId}_name", profile.fullName).putString("${session.userId}_religion", profile.religion).putString("${session.userId}_dob", profile.dateOfBirth).putString("${session.userId}_time", profile.birthTime).putString("${session.userId}_place", profile.birthplace).apply()
             Result.success(Unit)
         } catch (error: Exception) { Result.failure(error) }
+    }
+
+    private fun cachedProfile(userId: String): UserProfile? {
+        val prefs = context.getSharedPreferences("astrotalks_profile", Context.MODE_PRIVATE)
+        val name = prefs.getString("${userId}_name", null) ?: return null
+        return UserProfile(name, prefs.getString("${userId}_religion", "Hinduism") ?: "Hinduism", prefs.getString("${userId}_dob", "") ?: "", prefs.getString("${userId}_time", "") ?: "", prefs.getString("${userId}_place", "") ?: "")
     }
 
     suspend fun deleteAccount(session: SupabaseSession): Result<Unit> = withContext(Dispatchers.IO) {
