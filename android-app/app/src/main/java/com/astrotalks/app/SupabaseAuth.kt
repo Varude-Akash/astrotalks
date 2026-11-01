@@ -15,18 +15,18 @@ data class ArchivedMessage(val role: String, val content: String)
 class SupabaseAuth(private val context: Context) {
     suspend fun loadProfile(session: SupabaseSession): Result<UserProfile?> = withContext(Dispatchers.IO) {
         try {
-            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?id=eq.${session.userId}&select=full_name,religion,date_of_birth,birth_time,birthplace").openConnection() as HttpURLConnection
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?id=eq.${session.userId}&select=full_name,religion,date_of_birth,birth_time,birthplace,onboarding_completed").openConnection() as HttpURLConnection
             connection.requestMethod = "GET"; connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             if (connection.responseCode !in 200..299) error("Profile could not be loaded")
             val rows = org.json.JSONArray(body)
-            if (rows.length() == 0) Result.success(cachedProfile(session.userId)) else { val row = rows.getJSONObject(0); Result.success(UserProfile(row.optString("full_name"), row.optString("religion", "Hinduism"), row.optString("date_of_birth"), row.optString("birth_time"), row.optString("birthplace"))) }
+            if (rows.length() == 0) Result.success(cachedProfile(session.userId)) else { val row = rows.getJSONObject(0); if (!row.optBoolean("onboarding_completed", false)) Result.success(null) else Result.success(UserProfile(row.optString("full_name"), row.optString("religion", "Hinduism"), row.optString("date_of_birth"), row.optString("birth_time"), row.optString("birthplace"))) }
         } catch (error: Exception) { Result.success(cachedProfile(session.userId)) }
     }
 
     suspend fun loadArchivedChats(session: SupabaseSession): Result<List<ArchivedChat>> = withContext(Dispatchers.IO) {
         try {
-            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/chat_sessions?select=guide_id,created_at&user_id=eq.${session.userId}&status=eq.archived&order=created_at.desc").openConnection() as HttpURLConnection
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/chat_sessions?select=id,guide_id,created_at&user_id=eq.${session.userId}&status=eq.archived&order=created_at.desc").openConnection() as HttpURLConnection
             connection.requestMethod = "GET"; connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             if (connection.responseCode !in 200..299) error("Conversation history could not be loaded")
@@ -74,7 +74,7 @@ class SupabaseAuth(private val context: Context) {
                 put("id", session.userId)
                 put("full_name", profile.fullName); put("religion", profile.religion)
                 put("date_of_birth", profile.dateOfBirth); put("birth_time", profile.birthTime)
-                put("birthplace", profile.birthplace)
+                put("birthplace", profile.birthplace); put("onboarding_completed", true)
             }
             connection.outputStream.use { it.write(payload.toString().toByteArray()) }
             if (connection.responseCode !in 200..299) error("Profile save failed: ${connection.responseCode}")

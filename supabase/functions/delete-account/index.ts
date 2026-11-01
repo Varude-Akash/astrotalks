@@ -29,6 +29,18 @@ Deno.serve(async (request) => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
+  const email = data.user.email?.trim().toLowerCase();
+  if (email) {
+    const { data: cooldown } = await adminClient
+      .from("account_deletion_cooldowns")
+      .select("deleted_at")
+      .eq("email", email)
+      .maybeSingle();
+    if (cooldown?.deleted_at && Date.now() - new Date(cooldown.deleted_at).getTime() < 24 * 60 * 60 * 1000) {
+      return Response.json({ error: "Account deletion is available once every 24 hours." }, { status: 429 });
+    }
+    await adminClient.from("account_deletion_cooldowns").upsert({ email, deleted_at: new Date().toISOString() });
+  }
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(data.user.id);
   if (deleteError) {
     return Response.json({ error: "Account deletion failed" }, { status: 500 });
