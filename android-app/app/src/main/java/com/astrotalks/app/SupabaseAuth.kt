@@ -27,4 +27,25 @@ class SupabaseAuth(private val context: Context) {
             Result.success(SupabaseSession(json.getString("access_token"), user.getString("id"), email))
         } catch (error: Exception) { Result.failure(error) }
     }
+
+    suspend fun saveProfile(session: SupabaseSession, profile: UserProfile): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val endpoint = "${BuildConfig.SUPABASE_URL}/rest/v1/profiles?id=eq.${session.userId}"
+            val connection = URL(endpoint).openConnection() as HttpURLConnection
+            connection.requestMethod = "PATCH"
+            connection.doOutput = true
+            connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+            connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Prefer", "return=minimal")
+            val payload = JSONObject().apply {
+                put("full_name", profile.fullName); put("religion", profile.religion)
+                put("date_of_birth", profile.dateOfBirth); put("birth_time", profile.birthTime)
+                put("birthplace", profile.birthplace)
+            }
+            connection.outputStream.use { it.write(payload.toString().toByteArray()) }
+            if (connection.responseCode !in 200..299) error("Profile save failed: ${connection.responseCode}")
+            Result.success(Unit)
+        } catch (error: Exception) { Result.failure(error) }
+    }
 }

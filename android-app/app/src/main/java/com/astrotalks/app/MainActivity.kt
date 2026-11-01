@@ -32,6 +32,8 @@ private val Cream = Color(0xFFFFFBF2)
 private val Gold = Color(0xFFD09A2D)
 
 data class Guide(val name: String, val symbol: String, val description: String, val rate: Int, val color: Color)
+data class UserProfile(val fullName: String, val religion: String, val dateOfBirth: String, val birthTime: String, val birthplace: String)
+data class SignedInUser(val google: GoogleAccount, val session: SupabaseSession)
 private val guides = listOf(
     Guide("Shri Krishna", "ॐ", "For clarity, courage & a lighter heart.", 15, Color(0xFF73501A)),
     Guide("Lord Shiva", "◒", "For stillness, release & transformation.", 20, Color(0xFF51483A)),
@@ -46,9 +48,16 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable fun AarohanApp() {
-    var account by remember { mutableStateOf<GoogleAccount?>(null) }
-    if (account == null) {
-        GoogleSignInScreen { account = it }
+    val context = LocalContext.current
+    var user by remember { mutableStateOf<SignedInUser?>(null) }
+    var profile by remember { mutableStateOf<UserProfile?>(null) }
+    val scope = rememberCoroutineScope()
+    if (user == null) {
+        GoogleSignInScreen { google, session -> user = SignedInUser(google, session) }
+        return
+    }
+    if (profile == null) {
+        OnboardingScreen(defaultName = user!!.google.name) { completed -> profile = completed; scope.launch { SupabaseAuth(context).saveProfile(user!!.session, completed) } }
         return
     }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -57,7 +66,7 @@ class MainActivity : ComponentActivity() {
         Surface(color = Cream, modifier = Modifier.fillMaxSize()) {
             Scaffold(bottomBar = { BottomBar(selectedTab) { selectedTab = it } }) { padding ->
                 when (selectedTab) {
-                    0 -> HomeScreen(Modifier.padding(padding)) { selectedGuide = it }
+                    0 -> HomeScreen(Modifier.padding(padding), profile!!.fullName) { selectedGuide = it }
                     1 -> SimpleScreen(Modifier.padding(padding), "Conversations", "Your private spiritual reflections will appear here.")
                     2 -> StoreScreen(Modifier.padding(padding))
                     else -> SimpleScreen(Modifier.padding(padding), "Profile & privacy", "Signed in with Google\n\nAnanya Sharma · Hinduism\n14 October 1996 · Mumbai, India")
@@ -68,7 +77,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun GoogleSignInScreen(onSignedIn: (GoogleAccount) -> Unit) {
+@Composable private fun GoogleSignInScreen(onSignedIn: (GoogleAccount, SupabaseSession) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
@@ -78,16 +87,16 @@ class MainActivity : ComponentActivity() {
         Text("AstroTalks", color = Ink, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
         Text("Conversations for the soul", color = Color.Gray, modifier = Modifier.padding(top = 6.dp))
         Text("\nA private space for thoughtful, AI-generated spiritual reflections.", color = Ink, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
-        Button(onClick = { loading = true; error = null; scope.launch { GoogleAuth(context).signIn().onSuccess { googleAccount -> SupabaseAuth(context).signInWithGoogleIdToken(googleAccount.idToken).onSuccess { onSignedIn(googleAccount) }.onFailure { error = it.message ?: "Supabase sign-in could not be completed." } }.onFailure { error = it.message ?: "Google Sign-In could not be completed." }; loading = false } }, enabled = !loading, modifier = Modifier.fillMaxWidth().padding(top = 28.dp), shape = RoundedCornerShape(10.dp)) { Text(if (loading) "Signing in…" else "Continue with Google") }
+        Button(onClick = { loading = true; error = null; scope.launch { GoogleAuth(context).signIn().onSuccess { googleAccount -> SupabaseAuth(context).signInWithGoogleIdToken(googleAccount.idToken).onSuccess { session -> onSignedIn(googleAccount, session) }.onFailure { error = it.message ?: "Supabase sign-in could not be completed." } }.onFailure { error = it.message ?: "Google Sign-In could not be completed." }; loading = false } }, enabled = !loading, modifier = Modifier.fillMaxWidth().padding(top = 28.dp), shape = RoundedCornerShape(10.dp)) { Text(if (loading) "Signing in…" else "Continue with Google") }
         Text("Google Sign-In only · no passwords", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 12.dp))
         error?.let { Text(it, color = Color(0xFFB04747), fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 18.dp)) }
     }
 }
 
-@Composable private fun HomeScreen(modifier: Modifier, onGuide: (Guide) -> Unit) {
+@Composable private fun HomeScreen(modifier: Modifier, name: String, onGuide: (Guide) -> Unit) {
     Column(modifier.padding(horizontal = 20.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
         Spacer(Modifier.height(25.dp)); Text("ASTROTALKS", color = Purple, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-        Text("Good morning,\nAnanya.", color = Ink, fontSize = 38.sp, fontWeight = FontWeight.SemiBold, lineHeight = 42.sp)
+        Text("Good morning,\n$name.", color = Ink, fontSize = 38.sp, fontWeight = FontWeight.SemiBold, lineHeight = 42.sp)
         Text("Take a breath. Ask what’s on your heart.", color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF332719)), shape = RoundedCornerShape(20.dp), modifier = Modifier.padding(vertical = 22.dp).fillMaxWidth()) {
             Column(Modifier.padding(22.dp)) { Text("A quiet place to return to", color = Color(0xFFD7C99F), fontSize = 12.sp); Text("Who would you like to sit with?", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp)); Text("AI-generated spiritual reflections inspired by tradition.", color = Color(0xFFD4D1DF), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
@@ -95,6 +104,26 @@ class MainActivity : ComponentActivity() {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text("Your spiritual circle", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold); Text("240 ✦", color = Gold, fontWeight = FontWeight.Bold) }
         Spacer(Modifier.height(14.dp)); LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.height(510.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { items(guides) { guide -> GuideCard(guide) { onGuide(guide) } } }
         Text("AstroTalks is an AI-generated spiritual experience, not actual communication with a deity. It does not guarantee blessings, miracles, wealth, or outcomes.", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 24.dp))
+    }
+}
+
+@Composable private fun OnboardingScreen(defaultName: String, onComplete: (UserProfile) -> Unit) {
+    var name by remember { mutableStateOf(defaultName) }
+    var religion by remember { mutableStateOf("Hinduism") }
+    var dob by remember { mutableStateOf("") }
+    var birthTime by remember { mutableStateOf("") }
+    var birthplace by remember { mutableStateOf("") }
+    val valid = name.isNotBlank() && dob.isNotBlank() && birthTime.isNotBlank() && birthplace.isNotBlank()
+    Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(24.dp)) {
+        Spacer(Modifier.height(25.dp)); Text("YOUR PATH", color = Purple, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+        Text("Tell us a little\nabout yourself.", color = Ink, fontSize = 34.sp, fontWeight = FontWeight.SemiBold, lineHeight = 38.sp, modifier = Modifier.padding(top = 10.dp))
+        Text("This helps personalize your spiritual circle. You can edit these details anytime.", color = Color.Gray, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp, bottom = 22.dp))
+        Text("Religion", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp); OutlinedTextField(value = religion, onValueChange = { religion = it }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true, label = { Text("Religion") }, placeholder = { Text("e.g. Hinduism") })
+        Text("Full name", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.padding(top = 15.dp)); OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true, label = { Text("Full name") })
+        Text("Date of birth", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.padding(top = 15.dp)); OutlinedTextField(value = dob, onValueChange = { dob = it }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true, label = { Text("YYYY-MM-DD") }, placeholder = { Text("1996-10-14") })
+        Text("Birth time", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.padding(top = 15.dp)); OutlinedTextField(value = birthTime, onValueChange = { birthTime = it }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true, label = { Text("HH:MM") }, placeholder = { Text("07:42") })
+        Text("Birthplace", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.padding(top = 15.dp)); OutlinedTextField(value = birthplace, onValueChange = { birthplace = it }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true, label = { Text("City, country") }, placeholder = { Text("Mumbai, India") }, supportingText = { Text("We’ll add place search and map suggestions next.") })
+        Button(onClick = { onComplete(UserProfile(name.trim(), religion.trim(), dob.trim(), birthTime.trim(), birthplace.trim())) }, enabled = valid, modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 30.dp), shape = RoundedCornerShape(10.dp)) { Text("Continue to AstroTalks") }
     }
 }
 
