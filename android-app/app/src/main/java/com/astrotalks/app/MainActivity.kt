@@ -1,6 +1,9 @@
 package com.astrotalks.app
 
 import android.os.Bundle
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import java.util.Calendar
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
@@ -63,7 +66,7 @@ class MainActivity : ComponentActivity() {
         return
     }
     if (profile == null) {
-        OnboardingScreenV2(defaultName = user!!.google.name) { completed -> profile = completed; scope.launch { SupabaseAuth(context).saveProfile(user!!.session, completed) } }
+        OnboardingScreenV3(defaultName = user!!.google.name) { completed -> profile = completed; scope.launch { SupabaseAuth(context).saveProfile(user!!.session, completed) } }
         return
     }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -156,6 +159,37 @@ class MainActivity : ComponentActivity() {
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { if (step > 0) OutlinedButton(onClick = { step-- }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) { Text("Back") }; Button(onClick = { if (step < 3) step++ else onComplete(UserProfile(name.trim(), religion, dob.trim(), birthTime.trim(), birthplace.trim())) }, enabled = canContinue, modifier = Modifier.weight(2f), shape = RoundedCornerShape(14.dp)) { Text(if (step == 3) "Enter my circle  →" else "That’s me  →") } }
+    }
+}
+
+@Composable private fun OnboardingScreenV3(defaultName: String, onComplete: (UserProfile) -> Unit) {
+    val context = LocalContext.current
+    var step by remember { mutableIntStateOf(0) }
+    var name by remember { mutableStateOf("") }
+    var religion by remember { mutableStateOf("") }
+    var dob by remember { mutableStateOf("") }
+    var birthTime by remember { mutableStateOf("") }
+    var birthplace by remember { mutableStateOf("") }
+    val religions = listOf("Hinduism" to "ॐ", "Christianity" to "✝")
+    val canContinue = when (step) { 0 -> religion.isNotBlank(); 1 -> name.isNotBlank(); 2 -> dob.isNotBlank() && birthTime.isNotBlank(); else -> birthplace.isNotBlank() }
+    fun pickDate() { val now = Calendar.getInstance(); DatePickerDialog(context, { _, year, month, day -> dob = "%04d-%02d-%02d".format(year, month + 1, day) }, now.get(Calendar.YEAR) - 25, now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show() }
+    fun pickTime() { val now = Calendar.getInstance(); TimePickerDialog(context, { _, hour, minute -> birthTime = "%02d:%02d".format(hour, minute) }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true).show() }
+    Column(Modifier.fillMaxSize().background(Cream).padding(horizontal = 22.dp, vertical = 25.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        Column {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("✦  ASTROTALKS", color = Purple, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, fontSize = 12.sp); Text("${step + 1}/4", color = Color.Gray, fontSize = 11.sp) }
+            LinearProgressIndicator(progress = { (step + 1) / 4f }, modifier = Modifier.fillMaxWidth().padding(top = 14.dp), color = Purple, trackColor = Color(0xFFE9D9B5))
+            Crossfade(targetState = step, label = "onboarding") { current ->
+                Column(Modifier.padding(top = 44.dp)) {
+                    when (current) {
+                        0 -> { Text("Okay, let’s meet you ✨", color = Ink, fontSize = 32.sp, fontWeight = FontWeight.Bold); Text("What feels like home to your spirit?", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp, bottom = 24.dp)); religions.forEach { (label, symbol) -> Card(Modifier.fillMaxWidth().padding(vertical = 5.dp).clickable { religion = label }, colors = CardDefaults.cardColors(containerColor = if (religion == label) Color(0xFFFFE9AF) else Color.White), border = if (religion == label) androidx.compose.foundation.BorderStroke(2.dp, Purple) else null, shape = RoundedCornerShape(18.dp)) { Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) { Text(symbol, color = Purple, fontSize = 24.sp); Spacer(Modifier.width(16.dp)); Text(label, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold); Spacer(Modifier.weight(1f)); if (religion == label) Text("✓", color = Purple, fontSize = 20.sp) } } } }
+                        1 -> { Text("What should we call you? 🌙", color = Ink, fontSize = 31.sp, fontWeight = FontWeight.Bold); Text("Just your first name — that’s all we need.", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp, bottom = 28.dp)); OutlinedTextField(value = name, onValueChange = { name = it.substringBefore(" ") }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("First name") }, placeholder = { Text("e.g. Akash") }); Text("Nice to meet you, ${name.ifBlank { "beautiful soul" }}.", color = Purple, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 18.dp)) }
+                        2 -> { Text("When did your story begin? 🪐", color = Ink, fontSize = 31.sp, fontWeight = FontWeight.Bold); Text("Tap each card — no typing dates or times.", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp, bottom = 24.dp)); OutlinedButton(onClick = { pickDate() }, modifier = Modifier.fillMaxWidth().height(62.dp), shape = RoundedCornerShape(16.dp)) { Text(if (dob.isBlank()) "📅  Choose date of birth" else "📅  $dob", color = Ink) }; OutlinedButton(onClick = { pickTime() }, modifier = Modifier.fillMaxWidth().height(62.dp).padding(top = 12.dp), shape = RoundedCornerShape(16.dp)) { Text(if (birthTime.isBlank()) "🕰  Choose birth time" else "🕰  $birthTime", color = Ink) } }
+                        else -> { Text("Where are you rooted? 📍", color = Ink, fontSize = 31.sp, fontWeight = FontWeight.Bold); Text("Tell us the place that holds the beginning of your story.", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp, bottom = 24.dp)); OutlinedTextField(value = birthplace, onValueChange = { birthplace = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Birthplace") }, placeholder = { Text("City, country") }); Text("Location suggestions will be connected here next.", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 10.dp)) }
+                    }
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { if (step > 0) OutlinedButton(onClick = { step-- }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) { Text("Back") }; Button(onClick = { if (step < 3) step++ else onComplete(UserProfile(name.trim(), religion, dob, birthTime, birthplace.trim())) }, enabled = canContinue, modifier = Modifier.weight(2f), shape = RoundedCornerShape(14.dp)) { Text(if (step == 3) "Enter my circle  →" else "That’s me  →") } }
     }
 }
 
