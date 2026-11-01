@@ -9,7 +9,8 @@ import java.net.URL
 
 data class SupabaseSession(val accessToken: String, val userId: String, val email: String?)
 data class ChatSession(val id: String)
-data class ArchivedChat(val guideId: String, val createdAt: String)
+data class ArchivedChat(val id: String, val guideId: String, val createdAt: String)
+data class ArchivedMessage(val role: String, val content: String)
 
 class SupabaseAuth(private val context: Context) {
     suspend fun loadProfile(session: SupabaseSession): Result<UserProfile?> = withContext(Dispatchers.IO) {
@@ -29,7 +30,16 @@ class SupabaseAuth(private val context: Context) {
             connection.requestMethod = "GET"; connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             if (connection.responseCode !in 200..299) error("Conversation history could not be loaded")
-            val rows = org.json.JSONArray(body); Result.success((0 until rows.length()).map { index -> val row = rows.getJSONObject(index); ArchivedChat(row.getString("guide_id"), row.optString("created_at")) })
+            val rows = org.json.JSONArray(body); Result.success((0 until rows.length()).map { index -> val row = rows.getJSONObject(index); ArchivedChat(row.getString("id"), row.getString("guide_id"), row.optString("created_at")) })
+        } catch (error: Exception) { Result.failure(error) }
+    }
+
+    suspend fun loadArchivedMessages(session: SupabaseSession, chatSessionId: String): Result<List<ArchivedMessage>> = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/chat_messages?select=role,content&session_id=eq.$chatSessionId&order=created_at.asc").openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"; connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            val body = connection.inputStream.bufferedReader().use { it.readText() }; if (connection.responseCode !in 200..299) error("Messages could not be loaded")
+            val rows = org.json.JSONArray(body); Result.success((0 until rows.length()).map { index -> val row = rows.getJSONObject(index); ArchivedMessage(row.getString("role"), row.getString("content")) })
         } catch (error: Exception) { Result.failure(error) }
     }
     suspend fun signInWithGoogleIdToken(idToken: String): Result<SupabaseSession> = withContext(Dispatchers.IO) {
