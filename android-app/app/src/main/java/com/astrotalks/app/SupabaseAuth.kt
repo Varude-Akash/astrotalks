@@ -91,11 +91,12 @@ class SupabaseAuth(private val context: Context) {
 
     suspend fun deleteAccount(session: SupabaseSession): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val connection = URL("${BuildConfig.SUPABASE_URL}/auth/v1/user").openConnection() as HttpURLConnection
+            val connection = URL("${BuildConfig.SUPABASE_URL}/functions/v1/delete-account").openConnection() as HttpURLConnection
             connection.requestMethod = "DELETE"
             connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             connection.setRequestProperty("Authorization", "Bearer ${session.accessToken}")
             if (connection.responseCode !in 200..299) error("Account deletion failed: ${connection.responseCode}")
+            context.getSharedPreferences("astrotalks_profile", Context.MODE_PRIVATE).edit().clear().apply()
             Result.success(Unit)
         } catch (error: Exception) { Result.failure(error) }
     }
