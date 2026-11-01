@@ -72,12 +72,13 @@ class MainActivity : ComponentActivity() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
+    var loading by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Text("✦", color = Purple, fontSize = 42.sp)
         Text("AstroTalks", color = Ink, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
         Text("Conversations for the soul", color = Color.Gray, modifier = Modifier.padding(top = 6.dp))
         Text("\nA private space for thoughtful, AI-generated spiritual reflections.", color = Ink, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
-        Button(onClick = { scope.launch { GoogleAuth(context).signIn().onSuccess(onSignedIn).onFailure { error = it.message ?: "Google Sign-In could not be completed." } } }, modifier = Modifier.fillMaxWidth().padding(top = 28.dp), shape = RoundedCornerShape(10.dp)) { Text("Continue with Google") }
+        Button(onClick = { loading = true; error = null; scope.launch { GoogleAuth(context).signIn().onSuccess { googleAccount -> SupabaseAuth(context).signInWithGoogleIdToken(googleAccount.idToken).onSuccess { onSignedIn(googleAccount) }.onFailure { error = it.message ?: "Supabase sign-in could not be completed." } }.onFailure { error = it.message ?: "Google Sign-In could not be completed." }; loading = false } }, enabled = !loading, modifier = Modifier.fillMaxWidth().padding(top = 28.dp), shape = RoundedCornerShape(10.dp)) { Text(if (loading) "Signing in…" else "Continue with Google") }
         Text("Google Sign-In only · no passwords", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 12.dp))
         error?.let { Text(it, color = Color(0xFFB04747), fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 18.dp)) }
     }
