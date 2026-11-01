@@ -8,7 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 data class SupabaseSession(val accessToken: String, val userId: String, val email: String?)
-data class ChatSession(val id: String)
+data class ChatSession(val id: String, val balance: Int)
 data class ArchivedChat(val id: String, val guideId: String, val createdAt: String)
 data class ArchivedMessage(val role: String, val content: String)
 
@@ -110,7 +110,8 @@ class SupabaseAuth(private val context: Context) {
             connection.outputStream.use { it.write(JSONObject().put("p_guide_id", guideId).toString().toByteArray()) }
             val body = (if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream).bufferedReader().use { it.readText() }
             if (connection.responseCode !in 200..299) error("Not enough points for this guide")
-            Result.success(ChatSession(body.trim().replace("\"", "")))
+            val json = JSONObject(body)
+            Result.success(ChatSession(json.getString("id"), json.getInt("balance")))
         } catch (error: Exception) { Result.failure(error) }
     }
 
