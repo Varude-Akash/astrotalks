@@ -241,7 +241,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private fun guideImage(name: String): Int? = when (name) { "Shri Krishna" -> R.drawable.guide_krishna; "Lord Shiva" -> R.drawable.guide_shiva; else -> null }
+private fun guideImage(name: String): Int? = when (name) {
+    "Shri Krishna" -> R.drawable.guide_krishna
+    "Lord Shiva" -> R.drawable.guide_shiva
+    "Lord Ganesha" -> R.drawable.guide_ganesha
+    "Shri Hanuman" -> R.drawable.guide_hanuman
+    "Goddess Saraswati" -> R.drawable.guide_saraswati
+    "Mata Lakshmi" -> R.drawable.guide_lakshmi
+    "Maa Durga" -> R.drawable.guide_durga
+    "Maa Kali" -> R.drawable.guide_kali
+    "Lord Kartikeya" -> R.drawable.guide_kartikeya
+    "Shani Dev" -> R.drawable.guide_shani
+    "Jesus Christ" -> R.drawable.guide_jesus
+    else -> null
+}
 
 @Composable private fun GuideCard(guide: Guide, onClick: () -> Unit) { val interaction = remember { MutableInteractionSource() }; val pressed by interaction.collectIsPressedAsState(); val scale by animateFloatAsState(if (pressed) 0.96f else 1f, tween(140), label = "guide-press"); Card(modifier = Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }.clickable(interactionSource = interaction, indication = null, onClick = onClick), shape = RoundedCornerShape(16.dp)) { Column { Box(Modifier.fillMaxWidth().height(150.dp).background(guide.color), contentAlignment = Alignment.Center) { guideImage(guide.name)?.let { Image(painterResource(it), contentDescription = guide.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop) } ?: Text(guide.symbol, color = Color.White, fontSize = 42.sp) }; Column(Modifier.padding(12.dp)) { Text(guide.name, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold); Text(guide.description, color = Color.Gray, fontSize = 10.sp, lineHeight = 14.sp, modifier = Modifier.padding(top = 4.dp)); Text("${guide.rate} pts/min  →", color = Purple, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp)) } } } }
 
