@@ -10,7 +10,8 @@ const pointsByProduct: Record<string, number> = {
 Deno.serve(async (request) => {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const expected = Deno.env.get("REVENUECAT_WEBHOOK_AUTH");
-  if (!expected || request.headers.get("Authorization") !== `Bearer ${expected}`) {
+  const received = request.headers.get("Authorization") ?? "";
+  if (!expected || (received !== expected && received !== `Bearer ${expected}`)) {
     return new Response("Unauthorized", { status: 401 });
   }
 
