@@ -85,7 +85,12 @@ class MainActivity : ComponentActivity() {
     var pointsBalance by remember { mutableIntStateOf(15) }
     val scope = rememberCoroutineScope()
     if (user == null) {
-        GoogleSignInScreen { google, session -> user = SignedInUser(google, session); loadingProfile = true; scope.launch { SupabaseAuth(context).loadProfile(session).onSuccess { profile = it }.also { loadingProfile = false } } }
+        GoogleSignInScreen { google, session ->
+            user = SignedInUser(google, session)
+            RevenueCatBilling.configure(context, session.userId)
+            loadingProfile = true
+            scope.launch { SupabaseAuth(context).loadProfile(session).onSuccess { profile = it }.also { loadingProfile = false } }
+        }
         return
     }
     if (loadingProfile) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Gold) }; return }

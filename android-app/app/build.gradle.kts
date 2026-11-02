@@ -25,6 +25,7 @@ android { namespace = "com.astrotalks.app"; compileSdk = 36
     defaultConfig {
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "") }\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"${localProperties.getProperty("SUPABASE_PUBLISHABLE_KEY", "") }\"")
+        buildConfigField("String", "REVENUECAT_PUBLIC_KEY", "\"${localProperties.getProperty("REVENUECAT_PUBLIC_KEY", "") }\"")
     }
 }
 
@@ -39,4 +40,5 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("com.android.billingclient:billing-ktx:8.0.0")
+    implementation("com.revenuecat.purchases:purchases:10.15.1")
 }
