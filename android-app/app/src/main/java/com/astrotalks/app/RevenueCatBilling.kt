@@ -28,7 +28,10 @@ object RevenueCatBilling {
         if (!Purchases.isConfigured) { onResult(Result.failure(IllegalStateException("Payments are not ready yet."))); return }
         Purchases.sharedInstance.getOfferings(object : ReceiveOfferingsCallback {
             override fun onReceived(offerings: Offerings) {
-                val pkg = offerings.current?.availablePackages?.firstOrNull { it.identifier == packageId }
+                // RevenueCat's first custom package was saved with the built-in
+                // identifier "custom"; keep the app's stable business ID here.
+                val revenueCatPackageId = if (packageId == "points_100") "custom" else packageId
+                val pkg = offerings.current?.availablePackages?.firstOrNull { it.identifier == revenueCatPackageId }
                 if (pkg == null) { onResult(Result.failure(IllegalStateException("This points package is unavailable."))); return }
                 Purchases.sharedInstance.purchase(PurchaseParams.Builder(activity, pkg).build(), object : PurchaseCallback {
                     override fun onCompleted(storeTransaction: StoreTransaction, customerInfo: CustomerInfo) {
