@@ -8,11 +8,29 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 data class SupabaseSession(val accessToken: String, val userId: String, val email: String?)
-data class ChatSession(val id: String, val balance: Int)
+data class ChatSession(val id: String, val balance: Int, val seconds: Int, val minutes: Int)
 data class ArchivedChat(val id: String, val guideId: String, val createdAt: String)
 data class ArchivedMessage(val role: String, val content: String)
 
 class SupabaseAuth(private val context: Context) {
+    fun saveSession(session: SupabaseSession) {
+        context.getSharedPreferences("astrotalks_session", Context.MODE_PRIVATE).edit()
+            .putString("access_token", session.accessToken)
+            .putString("user_id", session.userId)
+            .putString("email", session.email)
+            .apply()
+    }
+
+    fun loadSession(): SupabaseSession? {
+        val prefs = context.getSharedPreferences("astrotalks_session", Context.MODE_PRIVATE)
+        val token = prefs.getString("access_token", null) ?: return null
+        val userId = prefs.getString("user_id", null) ?: return null
+        return SupabaseSession(token, userId, prefs.getString("email", null))
+    }
+
+    fun clearSession() {
+        context.getSharedPreferences("astrotalks_session", Context.MODE_PRIVATE).edit().clear().apply()
+    }
     suspend fun loadProfile(session: SupabaseSession): Result<UserProfile?> = withContext(Dispatchers.IO) {
         try {
             val connection = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?id=eq.${session.userId}&select=full_name,religion,date_of_birth,birth_time,birthplace,onboarding_completed").openConnection() as HttpURLConnection
@@ -112,7 +130,7 @@ class SupabaseAuth(private val context: Context) {
             val body = (if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream).bufferedReader().use { it.readText() }
             if (connection.responseCode !in 200..299) error("Not enough points for this guide")
             val json = JSONObject(body)
-            Result.success(ChatSession(json.getString("id"), json.getInt("balance")))
+            Result.success(ChatSession(json.getString("id"), json.getInt("balance"), json.optInt("seconds", 60), json.optInt("minutes", 1)))
         } catch (error: Exception) { Result.failure(error) }
     }
 
